@@ -60,7 +60,7 @@ public class SkillStore {
         skills.add(s);
         indexSkill(s);
         pushRecent(s);
-        undoStack.push(UndoAction.add(s));
+        
 
         saveToDisk(); // includes IOException handling
     }
@@ -103,7 +103,7 @@ public class SkillStore {
         existing.setCertification(newData.getCertification());
         indexSkill(existing);
 
-        undoStack.push(UndoAction.update(before, existing));
+        
         saveToDisk();
     }
 
@@ -112,29 +112,18 @@ public class SkillStore {
         return !undoStack.isEmpty();
     }
 
-    public void undo() {
-        if (undoStack.isEmpty()) return;
+   public void undo() {
+    if (undoStack.isEmpty()) return;
 
-        UndoAction action = undoStack.pop();
+    UndoAction action = undoStack.pop();
 
-        // IMPORTANT: We do not push new undo actions while undoing
-        switch (action.type) {
-            case ADD:
-                // undo ADD => remove the added skill
-                removeByIdNoUndo(action.after.getId());
-                break;
-            case DELETE:
-                // undo DELETE => re-add deleted
-                addNoUndo(action.before);
-                break;
-            case UPDATE:
-                // undo UPDATE => restore "before"
-                updateNoUndo(action.before.getId(), action.before);
-                break;
-        }
+    // Only allow undo for DELETE (ignore anything else)
+    if (action.type != UndoAction.Type.DELETE) return;
 
-        saveToDisk();
-    }
+    addNoUndo(action.before); // re-add the deleted skill
+    saveToDisk();
+}
+
 
     private void addNoUndo(Skill s) {
         skills.add(s);

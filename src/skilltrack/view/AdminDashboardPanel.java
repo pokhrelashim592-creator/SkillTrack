@@ -13,6 +13,7 @@ public class AdminDashboardPanel extends JPanel {
 
     private final SkillController controller;
     private final MainFrame frame;
+    private JButton undoButton;
 
     private final SkillTableModel tableModel = new SkillTableModel();
     private final JTable table = new JTable(tableModel);
@@ -61,14 +62,16 @@ public class AdminDashboardPanel extends JPanel {
         JButton add = toolBtn("➕ Add", this::onAdd);
         JButton edit = toolBtn("✏ Edit", this::onEdit);
         JButton del = toolBtn("🗑 Delete", this::onDelete);
-        JButton undo = toolBtn("↩ Undo", this::onUndo);
+     undoButton = toolBtn("↩ Undo (Restore Deleted)", this::onUndo);
+undoButton.setVisible(false); // hidden until a delete happens
+
         JButton home = toolBtn("🏠 Home", frame::showHome);
 
         bar.add(add);
         bar.add(edit);
         bar.add(del);
         bar.addSeparator();
-        bar.add(undo);
+        bar.add(undoButton);
         bar.addSeparator();
         bar.add(home);
 
@@ -76,6 +79,12 @@ public class AdminDashboardPanel extends JPanel {
         top.add(bar, BorderLayout.EAST);
         return top;
     }
+    private void updateUndoVisibility() {
+    if (undoButton != null) {
+        undoButton.setVisible(controller.canUndo()); // visible only if delete undo exists
+    }
+}
+
 
     private JButton toolBtn(String text, Runnable action) {
         JButton b = new JButton(text);
@@ -189,10 +198,12 @@ public class AdminDashboardPanel extends JPanel {
         return b;
     }
 
-    public void refresh() {
-        tableModel.setData(controller.getAllSkills());
-        frame.setStatus("Loaded " + controller.getAllSkills().size() + " skills");
-    }
+  public void refresh() {
+    tableModel.setData(controller.getAllSkills());
+    updateUndoVisibility();
+    frame.setStatus("Loaded " + controller.getAllSkills().size() + " skills");
+}
+
 
     private Skill selectedSkill() {
         int row = table.getSelectedRow();
@@ -253,6 +264,8 @@ public class AdminDashboardPanel extends JPanel {
         try {
             controller.deleteSkill(sel.getId());
             refresh();
+            updateUndoVisibility();
+JOptionPane.showMessageDialog(this, "Skill deleted. You can undo this delete now.");
             frame.setStatus("Deleted: " + sel.getName());
         } catch (IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -266,6 +279,8 @@ public class AdminDashboardPanel extends JPanel {
         }
         controller.undo();
         refresh();
+        updateUndoVisibility();
+
         frame.setStatus("Undo completed");
     }
 
